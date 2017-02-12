@@ -5,8 +5,6 @@ byte nonsense_var = 0;  //sacrifice to the ifdef
 #define ON "1"
 #define OFF "0"
 
-#define MUTE_WEMO 1
-
 #ifdef DEBUG
  #define DEBUG_PRINT(x)  Serial.println (x)
 #else
