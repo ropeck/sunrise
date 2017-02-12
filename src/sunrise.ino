@@ -1,5 +1,7 @@
 #include "InternetButton.h"
 
+byte nonsense_var = 0;  //sacrifice to the ifdef 
+
 #define ON "1"
 #define OFF "0"
 
@@ -41,7 +43,7 @@ void switchSet(String state, String host) {
   String data1;
 
   DEBUG_PRINT("switchState "+state+" "+host);
-#ifdef WEMO_MUTE
+#ifdef MUTE_WEMO
   DEBUG_PRINT("muted");
   return;
 #endif
