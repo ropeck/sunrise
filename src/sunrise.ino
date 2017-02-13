@@ -4,7 +4,7 @@
 #define OFF "0"
 
 // #define MUTE_WEMO 1
-#undef DEBUG
+//#undef DEBUG
 
 #ifdef DEBUG
  #define DEBUG_PRINT(x)  Serial.println (x)
@@ -47,10 +47,13 @@ boolean anyButtonPressed() {
 int shaken() {
     int shake = (abs((xValue-b.readX())+abs(yValue-b.readY())+
 		 abs(zValue-b.readZ())));
+    char buf[255];
+
     xValue = b.readX();
     yValue = b.readY();
     zValue = b.readZ();
-    DEBUG_PRINT("shake" + shake);
+    sprintf(buf, "shake %d", shake);
+    DEBUG_PRINT(buf);
     return (shake > 100);
 }
 
