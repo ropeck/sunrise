@@ -22,6 +22,8 @@ TCPClient client;
 
 void switchOn();
 void switchOff();
+void loopWemo();
+void setupWemo();
 
 void setup() {
     b.begin();
@@ -32,6 +34,7 @@ void setup() {
     xValue = b.readX();
     yValue = b.readY();
     zValue = b.readZ();
+    setupWemo();
 }
 
 void flashlights() {
@@ -52,12 +55,13 @@ int shaken() {
     xValue = b.readX();
     yValue = b.readY();
     zValue = b.readZ();
-    sprintf(buf, "shake %d", shake);
-    DEBUG_PRINT(buf);
+    //sprintf(buf, "shake %d", shake);
+    //DEBUG_PRINT(buf);
     return (shake > 100);
 }
 
 void loop() {
+    loopWemo();
 // have to ignore button 4 because it's also the D7 led and I want that off
     
     if (anyButtonPressed()) {

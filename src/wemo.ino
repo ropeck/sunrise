@@ -61,7 +61,53 @@ void switchOff() {
   }
 }
 
+UDP udp;
+void setupWemo() {
+  // scan for wemo switches with a udp broadcast
 
+
+  IPAddress UpNPIP(239, 255, 255, 250);
+  int UpNPPort = 1900;
+
+    String searchPacket = "M-SEARCH * HTTP/1.1\r\n";
+    searchPacket.concat("HOST: 239.255.255.250:1900\r\n");
+    searchPacket.concat("MAN: \"ssdp:discover\"\r\n");
+    searchPacket.concat("MX: ");
+    searchPacket.concat("5");
+    searchPacket.concat("\r\n");
+    searchPacket.concat("ST: ");
+    searchPacket.concat("urn:Belkin:device:controllee:1");
+    searchPacket.concat("\r\n");
+    searchPacket.concat("\r\n");
+    Serial.println("Sending:");
+    Serial.print(searchPacket);
+    Serial.println();
+    udp.begin(1901);
+    udp.beginPacket(UpNPIP, UpNPPort);
+    udp.write(searchPacket);
+    udp.endPacket();
+}
+
+unsigned long lastTime = 0;
+void loopWemo() {
+  if (lastTime == 0) {
+      lastTime = millis();
+  }
+  if (millis() - lastTime > 1000) {
+        int packetSize = 0;
+        packetSize = udp.parsePacket();
+        if(packetSize != 0){
+            Serial.println("Device discovered");
+            byte packetBuffer[packetSize+1];
+            udp.read(packetBuffer, packetSize);
+            String deviceData = String((char *)packetBuffer);
+            Serial.print(deviceData);
+            Serial.println();
+            Serial.println("--");
+        }
+      lastTime = millis();
+  }
+}
 
 
 
