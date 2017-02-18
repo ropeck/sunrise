@@ -76,7 +76,8 @@ void setupWemo() {
     searchPacket.concat("5");
     searchPacket.concat("\r\n");
     searchPacket.concat("ST: ");
-    searchPacket.concat("urn:Belkin:device:controllee:1");
+    //searchPacket.concat("urn:Belkin:device:controllee:1");
+    searchPacket.concat("urn:Belkin:device:1");
     searchPacket.concat("\r\n");
     searchPacket.concat("\r\n");
     Serial.println("Sending:");
@@ -90,21 +91,31 @@ void setupWemo() {
 
 unsigned long lastTime = 0;
 void loopWemo() {
+  char *url;
+
   if (lastTime == 0) {
       lastTime = millis();
   }
   if (millis() - lastTime > 1000) {
         int packetSize = 0;
         packetSize = udp.parsePacket();
-        if(packetSize != 0){
+        while(packetSize != 0){
             Serial.println("Device discovered");
             byte packetBuffer[packetSize+1];
             udp.read(packetBuffer, packetSize);
-            String deviceData = String((char *)packetBuffer);
-            Serial.print(deviceData);
-            Serial.println();
-            Serial.println("--");
+            //String deviceData = String((char *)packetBuffer);
+            //Serial.print(deviceData);
+            //Serial.println();
+            //Serial.println("--");
+            url = strstr((char *)packetBuffer, "LOCATION: ")+10;
+            char *end = strstr(url, "xml")+3;
+            *end = 0;
+	    Serial.println(String(url));
+            packetSize = udp.parsePacket();
         }
+// get the location
+// LOCATION: http://10.0.1.15:49153/setup.xml
+
       lastTime = millis();
   }
 }
