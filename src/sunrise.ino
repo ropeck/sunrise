@@ -50,7 +50,7 @@ boolean anyButtonPressed() {
 int shaken() {
     int shake = (abs((xValue-b.readX())+abs(yValue-b.readY())+
 		 abs(zValue-b.readZ())));
-    char buf[255];
+    //char buf[255];
 
     xValue = b.readX();
     yValue = b.readY();

@@ -17,6 +17,26 @@ String swaddr[] = {"10.0.1.7", "10.0.1.3"};
 
 int wemoPort = 49153;
 
+char subnet[16];  // subnet prefix of all devices
+
+char *fetchHttp(char *url) {
+  TCPClient client;
+  String host="10.0.1.7";
+
+  if (client.connect(host,wemoPort)) {
+        client.print("GET ");
+        client.print(String(url));
+        client.print(" HTTP/1.1");
+        client.println();
+    }
+  while (!client.available()) { delay(500); }
+  Serial.println(String(client.read()));
+
+  if (client.connected()) {
+     client.stop();
+  }
+}
+
 void switchSet(String state, String host) {
   TCPClient client;
   String data1;
