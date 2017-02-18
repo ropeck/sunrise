@@ -11,9 +11,9 @@ byte nonsense_var = 0;  //sacrifice to the ifdef
  #define DEBUG_PRINT(x)
 #endif
 
-String swaddr[] = {"10.0.1.10", "10.0.1.18"};
-// living room 10.0.1.10
-// bedroom 10.0.1.18
+String swaddr[] = {"10.0.1.7", "10.0.1.3"};
+// living room 10.0.1.7
+// bedroom 10.0.1.3
 
 int wemoPort = 49153;
 
