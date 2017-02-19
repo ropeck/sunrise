@@ -108,6 +108,8 @@ UDP udp;
 void setupWemo() {
   // scan for wemo switches with a udp broadcast
 
+  randomSeed(analogRead(A0));
+  delay(random(2000));  // avoid herd load on power up
 
   IPAddress UpNPIP(239, 255, 255, 250);
   int UpNPPort = 1900;
