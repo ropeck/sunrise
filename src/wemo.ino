@@ -110,39 +110,38 @@ void setupWemo() {
 
   randomSeed(analogRead(A0));
   delay(random(2000));  // avoid herd load on power up
-
-  IPAddress UpNPIP(239, 255, 255, 250);
-  int UpNPPort = 1900;
-
-    String searchPacket = "M-SEARCH * HTTP/1.1\r\n";
-    searchPacket.concat("HOST: 239.255.255.250:1900\r\n");
-    searchPacket.concat("MAN: \"ssdp:discover\"\r\n");
-    searchPacket.concat("MX: ");
-    searchPacket.concat("5");
-    searchPacket.concat("\r\n");
-    searchPacket.concat("ST: ");
-    //searchPacket.concat("urn:Belkin:device:controllee:1");
-    searchPacket.concat("urn:Belkin:device:1");
-    searchPacket.concat("\r\n");
-    searchPacket.concat("\r\n");
-    Serial.println("Sending:");
-    Serial.print(searchPacket);
-    Serial.println();
-    udp.begin(1901);
-    udp.beginPacket(UpNPIP, UpNPPort);
-    udp.write(searchPacket);
-    udp.endPacket();
+  udp.begin(1901);      // prep to listen for wemo devices
 }
 
 unsigned long lastTime = 0;
 void loopWemo() {
   char *host;
+  int packetSize;
+  IPAddress UpNPIP(239, 255, 255, 250);
+  int UpNPPort = 1900;
 
-  if (lastTime == 0) {
+  if (millis() - lastTime > 10000) {
       lastTime = millis();
+  
+      String searchPacket = "M-SEARCH * HTTP/1.1\r\n";
+      searchPacket.concat("HOST: 239.255.255.250:1900\r\n");
+      searchPacket.concat("MAN: \"ssdp:discover\"\r\n");
+      searchPacket.concat("MX: ");
+      searchPacket.concat("5");
+      searchPacket.concat("\r\n");
+      searchPacket.concat("ST: ");
+      //searchPacket.concat("urn:Belkin:device:controllee:1");
+      searchPacket.concat("urn:Belkin:device:1");
+      searchPacket.concat("\r\n");
+      searchPacket.concat("\r\n");
+      Serial.println("Sending:");
+      Serial.print(searchPacket);
+      Serial.println();
+      udp.beginPacket(UpNPIP, UpNPPort);
+      udp.write(searchPacket);
+      udp.endPacket();
   }
-  if (millis() - lastTime > 1000) {
-        int packetSize = 0;
+  
         packetSize = udp.parsePacket();
         while(packetSize != 0){
             Serial.println("Device discovered");
@@ -152,15 +151,7 @@ void loopWemo() {
             char *end = strstr(host, ":");
             *end = 0;
 	    _updateWemoDevice(host);
-	    
             packetSize = udp.parsePacket();
-        }
-// get the location
-// LOCATION: http://10.0.1.15:49153/setup.xml
-
-      lastTime = millis();
-  }
+        }	    
 }
-
-
 
