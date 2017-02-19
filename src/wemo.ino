@@ -134,7 +134,7 @@ void setupWemo() {
 
 unsigned long lastTime = 0;
 void loopWemo() {
-  char *url;
+  char *host;
 
   if (lastTime == 0) {
       lastTime = millis();
@@ -146,10 +146,10 @@ void loopWemo() {
             Serial.println("Device discovered");
             byte packetBuffer[packetSize+1];
             udp.read(packetBuffer, packetSize);
-            url = strstr((char *)packetBuffer, "LOCATION: ")+10;
-            char *end = strstr(url, "xml")+3;
+            host = strstr((char *)packetBuffer, "LOCATION: http://")+17;
+            char *end = strstr(host, ":");
             *end = 0;
-	    _updateWemoDevice(url);
+	    _updateWemoDevice(host);
 	    
             packetSize = udp.parsePacket();
         }
