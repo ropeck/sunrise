@@ -19,45 +19,71 @@ int wemoPort = 49153;
 
 char subnet[16];  // subnet prefix of all devices
 char hostbuf[255];
-char *bufcur = hostbuf;
+char *bufcur;
 struct WemoDev {
   char *name;
   char *addr;
+  int port;
 };
 struct WemoDev device[16];
-int devcount = 0;
+int devcount;
+
+void _resetWemoDeviceList() {
+  bufcur = hostbuf;
+  devcount = 0;
+}
 
 void _updateWemoDevice(char *url) {
   struct WemoDev *w;
-  char buf[255];
+  char buf[512];
+  char *name;
+  char *portstr;
+  strcpy(bufcur, url);
   w = &device[devcount];
   w->addr = bufcur;
-  strcpy(bufcur, url);
+  portstr = strchr(w->addr,':');
+  *portstr++ = 0;
   bufcur += strlen(url);
-
-  sprintf(buf, "WemoDev %i ", devcount);
-  Serial.print(buf);
-  Serial.println(device[devcount].addr);
+  *bufcur++ = 0;
+  w->port = atoi(portstr); 
+  w->name = bufcur;
+  name = fetchHttp(w->addr, w->port);
+  strcpy(bufcur, name);
+  bufcur += strlen(name);
+  *bufcur = 0;
+  
+  sprintf(buf, "WemoDev %i %s:%i %s",
+	  devcount, w->addr, w->port, w->name);
+  Serial.println(buf);
 
   devcount++;
 }
 
-char *fetchHttp(char *url) {
+#define DATABUFSIZE 10240
+char datahttp[DATABUFSIZE];
+char *fetchHttp(char *host, int port) {
   TCPClient client;
-  String host="10.0.1.7";
+  char buf[128];
+// LOCATION: http://10.0.1.15:49153/setup.xml
 
-  if (client.connect(host,wemoPort)) {
-        client.print("GET ");
-        client.print(String(url));
-        client.print(" HTTP/1.1");
+    if (client.connect(host,port)) {
+        client.print("GET http://");
+        client.print(String(host));
+        sprintf(buf,":%i/setup.xml HTTP/1.1", port);
+        client.println(buf);
         client.println();
     }
-  while (!client.available()) { delay(500); }
-  Serial.println(String(client.read()));
-
-  if (client.connected()) {
-     client.stop();
+  *datahttp = 0; 
+  while (client.connected()) {
+    while (*datahttp == 0 || client.available()) {
+      client.readString().toCharArray(datahttp, DATABUFSIZE);
+    }
   }
+// <friendlyName>Living Room</friendlyName>
+  char *name = strstr(datahttp, "<friendlyName>") + 14;
+  char *e = strstr(datahttp, "</friendlyName>");
+  *e = 0;
+  return name;
 }
 
 void switchSet(String state, String host) {
@@ -120,9 +146,9 @@ void loopWemo() {
   IPAddress UpNPIP(239, 255, 255, 250);
   int UpNPPort = 1900;
 
-  if (millis() - lastTime > 10000) {
+  if (millis() - lastTime > 30 * 1000) {
       lastTime = millis();
-  
+      _resetWemoDeviceList(); 
       String searchPacket = "M-SEARCH * HTTP/1.1\r\n";
       searchPacket.concat("HOST: 239.255.255.250:1900\r\n");
       searchPacket.concat("MAN: \"ssdp:discover\"\r\n");
@@ -134,9 +160,10 @@ void loopWemo() {
       searchPacket.concat("urn:Belkin:device:1");
       searchPacket.concat("\r\n");
       searchPacket.concat("\r\n");
-      Serial.println("Sending:");
-      Serial.print(searchPacket);
-      Serial.println();
+      Serial.println("Scanning for devices");
+      //Serial.println("Sending:");
+      //Serial.print(searchPacket);
+      //Serial.println();
       udp.beginPacket(UpNPIP, UpNPPort);
       udp.write(searchPacket);
       udp.endPacket();
@@ -144,11 +171,11 @@ void loopWemo() {
   
         packetSize = udp.parsePacket();
         while(packetSize != 0){
-            Serial.println("Device discovered");
+            //Serial.println("Device discovered");
             byte packetBuffer[packetSize+1];
             udp.read(packetBuffer, packetSize);
             host = strstr((char *)packetBuffer, "LOCATION: http://")+17;
-            char *end = strstr(host, ":");
+            char *end = strstr(host, "/");
             *end = 0;
 	    _updateWemoDevice(host);
             packetSize = udp.parsePacket();
