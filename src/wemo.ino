@@ -10,22 +10,16 @@ byte nonsense_var = 0;  //sacrifice to the ifdef
 #else
  #define DEBUG_PRINT(x)
 #endif
+#define TRICK17(x) x
 
-String swaddr[] = {"10.0.1.7", "10.0.1.3"};
-// living room 10.0.1.7
-// bedroom 10.0.1.3
-
-int wemoPort = 49153;
-
-char subnet[16];  // subnet prefix of all devices
 char hostbuf[255];
 char *bufcur;
-struct WemoDev {
+typedef struct {
   char *name;
   char *addr;
   int port;
-};
-struct WemoDev device[16];
+} WemoDev;
+WemoDev device[16];
 int devcount;
 
 void _resetWemoDeviceList() {
@@ -34,7 +28,7 @@ void _resetWemoDeviceList() {
 }
 
 void _updateWemoDevice(char *url) {
-  struct WemoDev *w;
+  WemoDev *w;
   char buf[512];
   char *name;
   char *portstr;
@@ -87,7 +81,7 @@ char *fetchHttp(char *host, int port) {
   return name;
 }
 
-void switchSet(String state, struct WemoDev *w) {
+TRICK17(void switchSet(String state, WemoDev *w)) {
   TCPClient client;
   String data1;
   char buf[255];
