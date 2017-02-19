@@ -92,9 +92,15 @@ void switchSet(String state, struct WemoDev *w) {
   String data1;
   char buf[255];
 
+  // only do rooms ... that is, things with 'oom' in the name
+
   sprintf(buf, "set %s %s:%d %s", state.c_str(), w->addr, w->port, w->name);  
   DEBUG_PRINT(buf);
 
+  if (strstr(w->name, "oom") == 0) {
+    DEBUG_PRINT("not a room. skipping state.");
+    return;
+  }
 #ifdef MUTE_WEMO
   DEBUG_PRINT("muted");
   return;
