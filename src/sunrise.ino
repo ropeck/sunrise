@@ -66,14 +66,14 @@ void loop() {
     
     if (anyButtonPressed()) {
       switchOff();
-      b.playSong("C4,8,E4,8,G4,8,C5,8,G5,4");
+      b.playSong("E5,8,G5,8,E6,8,C6,8,D6,8,G6,8");
       flashlights();
       return;
     }
 
     if (shaken()) {
       switchOn();
-      b.playSong("E5,8,G5,8,E6,8,C6,8,D6,8,G6,8");
+      b.playSong("C4,8,E4,8,G4,8,C5,8,G5,4");
       flashlights();
     }
 

@@ -38,19 +38,20 @@ void _updateWemoDevice(char *url) {
   char buf[512];
   char *name;
   char *portstr;
+  //Serial.println(url);
   strcpy(bufcur, url);
   w = &device[devcount];
   w->addr = bufcur;
   portstr = strchr(w->addr,':');
   *portstr++ = 0;
-  bufcur += strlen(url);
-  *bufcur++ = 0;
+  bufcur = portstr;
   w->port = atoi(portstr); 
   w->name = bufcur;
+  *bufcur = 0;
   name = fetchHttp(w->addr, w->port);
   strcpy(bufcur, name);
   bufcur += strlen(name);
-  *bufcur = 0;
+  *bufcur++ = 0;
   
   sprintf(buf, "WemoDev %i %s:%i %s",
 	  devcount, w->addr, w->port, w->name);
@@ -86,11 +87,14 @@ char *fetchHttp(char *host, int port) {
   return name;
 }
 
-void switchSet(String state, String host) {
+void switchSet(String state, struct WemoDev *w) {
   TCPClient client;
   String data1;
+  char buf[255];
 
-  DEBUG_PRINT("switchState "+state+" "+host);
+  sprintf(buf, "set %s %s:%d %s", state.c_str(), w->addr, w->port, w->name);  
+  DEBUG_PRINT(buf);
+
 #ifdef MUTE_WEMO
   DEBUG_PRINT("muted");
   return;
@@ -98,9 +102,9 @@ void switchSet(String state, String host) {
 
   data1 += "<?xml version=\"1.0\" encoding=\"utf-8\"?><s:Envelope xmlns:s=\"http://schemas.xmlsoap.org/soap/envelope/\" s:encodingStyle=\"http://schemas.xmlsoap.org/soap/encoding/\"><s:Body><u:SetBinaryState xmlns:u=\"urn:Belkin:service:basicevent:1\"><BinaryState>";
   data1 += state;
-  data1 += "%d</BinaryState></u:SetBinaryState></s:Body></s:Envelope>";
+  data1 += "</BinaryState></u:SetBinaryState></s:Body></s:Envelope>";
 
-  if (client.connect(host,wemoPort)) {
+  if (client.connect(w->addr,w->port)) {
         client.println("POST /upnp/control/basicevent1 HTTP/1.1");
         client.println("Content-Type: text/xml; charset=utf-8");
         client.println("SOAPACTION: \"urn:Belkin:service:basicevent:1#SetBinaryState\"");
@@ -117,17 +121,18 @@ void switchSet(String state, String host) {
   }
 }
 
-void switchOn() {
-  for (int i=0; i< 2; i++) {
-    switchSet(ON, swaddr[i]);
+void _switch(String state) {
+  for (int i=0; i< devcount; i++) {
+    switchSet(state, &device[i]);
   }
 }
 
+void switchOn() {
+  _switch(ON);
+}
 
 void switchOff() {
-  for (int i=0; i< 2; i++) {
-    switchSet(OFF, swaddr[i]);
-  }
+  _switch(OFF);
 }
 
 UDP udp;
@@ -146,7 +151,7 @@ void loopWemo() {
   IPAddress UpNPIP(239, 255, 255, 250);
   int UpNPPort = 1900;
 
-  if (millis() - lastTime > 30 * 1000) {
+  if (lastTime == 0 || millis() - lastTime > 30 * 1000) {
       lastTime = millis();
       _resetWemoDeviceList(); 
       String searchPacket = "M-SEARCH * HTTP/1.1\r\n";
