@@ -31,10 +31,8 @@ void _resetWemoDeviceList() {
 
 void _updateWemoDevice(char *url) {
   WemoDev *w;
-  char buf[512];
-  char *name;
   char *portstr;
-  //Serial.println(url);
+  Serial.println(url);
   strcpy(bufcur, url);
   w = &device[devcount];
   w->addr = bufcur;
@@ -44,31 +42,22 @@ void _updateWemoDevice(char *url) {
   w->port = atoi(portstr); 
   w->name = bufcur;
   *bufcur = 0;
-  name = fetchHttp(w);
-  strcpy(bufcur, name);
-  bufcur += strlen(name);
-  *bufcur++ = 0;
+  fetchHttp(w);
   
-  sprintf(buf, "WemoDev %i %s:%i %s",
-	  devcount, w->addr, w->port, w->name);
-  Serial.println(buf);
-
   devcount++;
 }
 
 #define DATABUFSIZE 10240
 char datahttp[DATABUFSIZE];
 TRICK17(char *fetchHttp(WemoDev *w)) {
-  TCPClient client;
   char buf[128];
 // LOCATION: http://10.0.1.15:49153/setup.xml
-  client = w->client;
-  if (client.connect(w->addr,w->port)) {
-        client.print("GET http://");
-        client.print(String(w->addr));
+  if (w->client.connect(w->addr,w->port)) {
+        w->client.print("GET http://");
+        w->client.print(String(w->addr));
         sprintf(buf,":%i/setup.xml HTTP/1.1", w->port);
-        client.println(buf);
-        client.println();
+        w->client.println(buf);
+        w->client.println();
    }
 }
 
@@ -98,7 +87,7 @@ TRICK17(void switchSet(String state, WemoDev *w)) {
   if (client.connect(w->addr,w->port)) {
         client.println("POST /upnp/control/basicevent1 HTTP/1.1");
         client.println("Content-Type: text/xml; charset=utf-8");
-        client.println("SOAPACTION: \"urn:Belkin:service:basicevent:1#SetBinaryState\"");
+          client.println("SOAPACTION: \"urn:Belkin:service:basicevent:1#SetBinaryState\"");
         client.println("Connection: keep-alive");
         client.print("Content-Length: ");
         client.println(data1.length());
@@ -178,18 +167,29 @@ void loopWemo() {
             packetSize = udp.parsePacket();
         }	    
 
+  char buf[512];
+  char *name;
   // check all the devices names
   for (int i=0; i<devcount; i++) {
+   WemoDev *w = &device[i];
    client = device[i].client; 
-   if (client.connected()) {
      if (client.available()) {
        client.readString().toCharArray(datahttp, DATABUFSIZE);
 // <friendlyName>Living Room</friendlyName>
        char *name = strstr(datahttp, "<friendlyName>") + 14;
        char *e = strstr(datahttp, "</friendlyName>");
        *e = 0;
+       w->name = bufcur;
+       strcpy(bufcur, name);
+       bufcur += strlen(name);
+       *bufcur++ = 0;
+       sprintf(buf, "WemoDev %i %s:%i %s",
+   	       devcount, w->addr, w->port, w->name);
+       Serial.println(buf);
+       if (client.connected()) {
+         client.stop();
+       }
      }
-   }
   }
 
 }
