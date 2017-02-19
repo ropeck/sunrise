@@ -18,10 +18,12 @@ typedef struct {
   char *name;
   char *addr;
   int port;
+  TCPClient client;
 } WemoDev;
 WemoDev device[16];
 int devcount;
 
+TRICK17(char *fetchHttp(WemoDev *));
 void _resetWemoDeviceList() {
   bufcur = hostbuf;
   devcount = 0;
@@ -42,7 +44,7 @@ void _updateWemoDevice(char *url) {
   w->port = atoi(portstr); 
   w->name = bufcur;
   *bufcur = 0;
-  name = fetchHttp(w->addr, w->port);
+  name = fetchHttp(w);
   strcpy(bufcur, name);
   bufcur += strlen(name);
   *bufcur++ = 0;
@@ -56,29 +58,18 @@ void _updateWemoDevice(char *url) {
 
 #define DATABUFSIZE 10240
 char datahttp[DATABUFSIZE];
-char *fetchHttp(char *host, int port) {
+TRICK17(char *fetchHttp(WemoDev *w)) {
   TCPClient client;
   char buf[128];
 // LOCATION: http://10.0.1.15:49153/setup.xml
-
-    if (client.connect(host,port)) {
+  client = w->client;
+  if (client.connect(w->addr,w->port)) {
         client.print("GET http://");
-        client.print(String(host));
-        sprintf(buf,":%i/setup.xml HTTP/1.1", port);
+        client.print(String(w->addr));
+        sprintf(buf,":%i/setup.xml HTTP/1.1", w->port);
         client.println(buf);
         client.println();
-    }
-  *datahttp = 0; 
-  while (client.connected()) {
-    while (*datahttp == 0 || client.available()) {
-      client.readString().toCharArray(datahttp, DATABUFSIZE);
-    }
-  }
-// <friendlyName>Living Room</friendlyName>
-  char *name = strstr(datahttp, "<friendlyName>") + 14;
-  char *e = strstr(datahttp, "</friendlyName>");
-  *e = 0;
-  return name;
+   }
 }
 
 TRICK17(void switchSet(String state, WemoDev *w)) {
@@ -150,6 +141,7 @@ void loopWemo() {
   int packetSize;
   IPAddress UpNPIP(239, 255, 255, 250);
   int UpNPPort = 1900;
+  TCPClient client;
 
   if (lastTime == 0 || millis() - lastTime > 30 * 1000) {
       lastTime = millis();
@@ -185,5 +177,20 @@ void loopWemo() {
 	    _updateWemoDevice(host);
             packetSize = udp.parsePacket();
         }	    
+
+  // check all the devices names
+  for (int i=0; i<devcount; i++) {
+   client = device[i].client; 
+   if (client.connected()) {
+     if (client.available()) {
+       client.readString().toCharArray(datahttp, DATABUFSIZE);
+// <friendlyName>Living Room</friendlyName>
+       char *name = strstr(datahttp, "<friendlyName>") + 14;
+       char *e = strstr(datahttp, "</friendlyName>");
+       *e = 0;
+     }
+   }
+  }
+
 }
 
