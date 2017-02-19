@@ -18,6 +18,29 @@ String swaddr[] = {"10.0.1.7", "10.0.1.3"};
 int wemoPort = 49153;
 
 char subnet[16];  // subnet prefix of all devices
+char hostbuf[255];
+char *bufcur = hostbuf;
+struct WemoDev {
+  char *name;
+  char *addr;
+};
+struct WemoDev device[16];
+int devcount = 0;
+
+void _updateWemoDevice(char *url) {
+  struct WemoDev *w;
+  char buf[255];
+  w = &device[devcount];
+  w->addr = bufcur;
+  strcpy(bufcur, url);
+  bufcur += strlen(url);
+
+  sprintf(buf, "WemoDev %i ", devcount);
+  Serial.print(buf);
+  Serial.println(device[devcount].addr);
+
+  devcount++;
+}
 
 char *fetchHttp(char *url) {
   TCPClient client;
@@ -123,14 +146,11 @@ void loopWemo() {
             Serial.println("Device discovered");
             byte packetBuffer[packetSize+1];
             udp.read(packetBuffer, packetSize);
-            //String deviceData = String((char *)packetBuffer);
-            //Serial.print(deviceData);
-            //Serial.println();
-            //Serial.println("--");
             url = strstr((char *)packetBuffer, "LOCATION: ")+10;
             char *end = strstr(url, "xml")+3;
             *end = 0;
-	    Serial.println(String(url));
+	    _updateWemoDevice(url);
+	    
             packetSize = udp.parsePacket();
         }
 // get the location
