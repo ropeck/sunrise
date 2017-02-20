@@ -18,9 +18,12 @@ byte nonsense_var = 0;  //sacrifice to the ifdef
 
 #define TRICK17(x) x
 
+#define MAX_NAME_LENGTH 32
+#define MAX_ADDR_LENGTH 16
+
 typedef struct {
-  char name[32];
-  char addr[16];
+  char name[MAX_NAME_LENGTH];
+  char addr[MAX_ADDR_LENGTH];
   int port;
   TCPClient client;
 } WemoDev;
@@ -29,6 +32,12 @@ int devcount;
 
 TRICK17(char *fetchHttp(WemoDev *));
 void _resetWemoDeviceList() {
+  WemoDev *w = device;
+  for (int i=0; i<devcount; i++) {
+    if (w->client.connected()) {
+      w->client.stop();
+    }
+  }
   devcount = 0;
 }
 
@@ -53,12 +62,14 @@ void _updateWemoDevice(char *url) {
   char *portstr;
   portstr = strchr(url,':');
   *portstr++ = 0;
-  strcpy(w.addr, url);
+  strncpy(w.addr, url, MAX_ADDR_LENGTH);
   w.port = atoi(portstr);
   DEBUG_PRINT("_update %s %d", w.addr, w.port);
+  for (int i=0; i<MAX_NAME_LENGTH; i++) {
+    w.name[i] = 0;
+  }
   device[devcount] = w;
-  //fetchHttp(devcount);
-  DEBUG_PRINT("leaving update %d", devcount);
+  fetchHttp(devcount);
   devcount++;
 }
 
@@ -191,7 +202,7 @@ void loopWemo() {
        char *name = strstr(datahttp, "<friendlyName>") + 14;
        char *e = strstr(datahttp, "</friendlyName>");
        *e = 0;
-       strcpy(w->name, name);
+       strncpy(w->name, name, 32);
        DEBUG_PRINT("WemoDev %i %s:%i %s",
    	       devcount, w->addr, w->port, w->name);
        if (client.connected()) {
