@@ -41,27 +41,35 @@ enum states {
 enum states state;
 
 void setColor() {    // set led colors for current time of day
-  int n = min(255,max(0,alarm - Time.now()));
+  time_t prealarm;
+    breakTime(Time.now(), tm); 
+    DEBUG_PRINT("time now %02d:%02d", tm.Hour, tm.Minute);
+    tm.Hour = 14;  // 6am Pacific
+    tm.Hour = (14+12+4)%24;  // 10pm Pacific
+    tm.Minute = 0;
+    tm.Second = 0;
+    alarm = makeTime(tm);
+    prealarm = alarm - 30*60; // 30 minutes earlier
+    if (Time.now() > alarm) {
+      alarm += 24*60*60;
+      prealarm += 24*60*60;
+    }
+    DEBUG_PRINT("time %d", (int)Time.now());
+    DEBUG_PRINT("alarm %d", (int)alarm);
+  time_t t = Time.now();
+
+  t = min(max(prealarm, t),alarm);
+  
+  int n = 255 * (t - prealarm) / (30*60);
   b.allLedsOn(n,n,0);
   DEBUG_PRINT("color %d", n);
 }
 
 void setup() {
     time_t t;
+
     b.begin();
    
-    breakTime(Time.now(), tm); 
-    DEBUG_PRINT("time now %02d:%02d", tm.Hour, tm.Minute);
-    tm.Hour = 14;  // 6am Pacific
-    tm.Minute = 0;
-    tm.Second = 0;
-    alarm = makeTime(tm);
-    if (Time.now() > alarm) {
-      alarm += 24*60*60;
-    }
-    DEBUG_PRINT("time %d", Time.now());
-    DEBUG_PRINT("alarm %d", alarm);
-
     RGB.control(true);
     RGB.brightness(32);  
     pinMode(D7, INPUT_PULLDOWN);
@@ -114,11 +122,14 @@ int brightness(int when) {
   return br;
 }
 
+time_t nextTime = 0;
+
 void loop() {
     loopWemo();
-    if ((Time.now() % 10) == 0) {
+    if (Time.now() > nextTime) {
       setColor();  
       DEBUG_PRINT("time: %d", Time.now());
+      nextTime = Time.now() + 10;
     }
 // have to ignore button 4 because it's also the D7 led and I want that off
     
