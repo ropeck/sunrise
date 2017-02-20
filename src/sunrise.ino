@@ -1,4 +1,8 @@
 #include "InternetButton.h"
+#include "ntp-time.h"
+
+NtpTime* ntpTime;
+static int alarm;
 
 #define ON "1"
 #define OFF "0"
@@ -6,10 +10,12 @@
 // #define MUTE_WEMO 1
 //#undef DEBUG
 
+
 #ifdef DEBUG
- #define DEBUG_PRINT(x)  Serial.println (x)
+ char buf[255];
+ #define DEBUG_PRINT(fmt, ...) sprintf(buf, fmt, __VA_ARGS__); Serial.println(buf);
 #else
- #define DEBUG_PRINT(x)
+ #define DEBUG_PRINT(fmt, ...)
 #endif
 
 
@@ -25,7 +31,17 @@ void switchOff();
 void loopWemo();
 void setupWemo();
 
+void setColor() {    // set led colors for current time of day
+  int n = min(255,max(0,alarm - Time.now()));
+  b.allLedsOn(n,n,0);
+  DEBUG_PRINT("color %d", n);
+}
+
 void setup() {
+    ntpTime = new NtpTime(15);  // Do an ntp update every 15 minutes;
+    ntpTime->start();
+    alarm = Time.now() + 255 + 5;
+
     b.begin();
     RGB.control(true);
     RGB.brightness(32);  
@@ -60,8 +76,27 @@ int shaken() {
     return (shake > 100);
 }
 
+
+int brightness(int when) {
+  // 0 to 255 over the 30 minutes before the alarm time
+  // pick a time for now as the target
+  static int br = 0;
+  int diff = when - Time.now();
+  br = 0;
+  if (diff < 0) {
+    br = 255;
+  }
+  if (diff < 255 && diff > 0) {
+    br = 255 - diff;
+  }
+
+  // DEBUG_PRINT("br %d %d %d", br, when, Time.now());
+  return br;
+}
+
 void loop() {
     loopWemo();
+    setColor();  
 // have to ignore button 4 because it's also the D7 led and I want that off
     
     if (anyButtonPressed()) {
