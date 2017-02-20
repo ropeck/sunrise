@@ -29,19 +29,33 @@ void _resetWemoDeviceList() {
   devcount = 0;
 }
 
+// consider how to update the existing table instead of
+// dropping all of them and reloading each time
+//
+// somehow deal with the allocated strings for the names
+// without memory management of the hostbuf space
+//
+// each new dev, check for match and update if found
+// if no match, add at the end
+// beep when new ones are found
+//
+// timeout devices that aren't seen for a long time by
+// updating the devices last seen time and purging ones
+// that are very old
+
+// convert then see if it's already been seen
+
 void _updateWemoDevice(char *url) {
-  WemoDev *w;
+  WemoDev w;
   char *portstr;
   Serial.println(url);
   strcpy(bufcur, url);
-  w = &device[devcount];
-  w->addr = bufcur;
-  portstr = strchr(w->addr,':');
+  //w = &device[devcount];
+  w.addr = bufcur;
+  portstr = strchr(w.addr,':');
   *portstr++ = 0;
   bufcur = portstr;
-  w->port = atoi(portstr); 
-  w->name = bufcur;
-  *bufcur = 0;
+  w.port = atoi(portstr); 
   fetchHttp(w);
   
   devcount++;

@@ -40,6 +40,8 @@ enum states {
 };
 enum states state;
 
+// https://github.com/neilbartlett/color-temperature/blob/master/index.js
+
 void setColor() {    // set led colors for current time of day
   time_t prealarm;
     breakTime(Time.now(), tm); 
