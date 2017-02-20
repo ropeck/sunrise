@@ -5,18 +5,22 @@ byte nonsense_var = 0;  //sacrifice to the ifdef
 #define ON "1"
 #define OFF "0"
 
+
 #ifdef DEBUG
- #define DEBUG_PRINT(x)  Serial.println (x)
-#else
- #define DEBUG_PRINT(x)
+#ifndef BUF
+  char debug_buf[255];
+#define BUF
 #endif
+ #define DEBUG_PRINT(fmt, ...) sprintf(debug_buf, fmt, __VA_ARGS__); Serial.println(debug_buf);
+#else
+ #define DEBUG_PRINT(fmt, ...)
+#endif
+
 #define TRICK17(x) x
 
-char hostbuf[255];
-char *bufcur;
 typedef struct {
-  char *name;
-  char *addr;
+  char name[32];
+  char addr[16];
   int port;
   TCPClient client;
 } WemoDev;
@@ -25,7 +29,6 @@ int devcount;
 
 TRICK17(char *fetchHttp(WemoDev *));
 void _resetWemoDeviceList() {
-  bufcur = hostbuf;
   devcount = 0;
 }
 
@@ -48,23 +51,22 @@ void _resetWemoDeviceList() {
 void _updateWemoDevice(char *url) {
   WemoDev w;
   char *portstr;
-  Serial.println(url);
-  strcpy(bufcur, url);
-  //w = &device[devcount];
-  w.addr = bufcur;
-  portstr = strchr(w.addr,':');
+  portstr = strchr(url,':');
   *portstr++ = 0;
-  bufcur = portstr;
-  w.port = atoi(portstr); 
-  fetchHttp(w);
-  
+  strcpy(w.addr, url);
+  w.port = atoi(portstr);
+  DEBUG_PRINT("_update %s %d", w.addr, w.port);
+  device[devcount] = w;
+  //fetchHttp(devcount);
+  DEBUG_PRINT("leaving update %d", devcount);
   devcount++;
 }
 
 #define DATABUFSIZE 10240
 char datahttp[DATABUFSIZE];
-TRICK17(char *fetchHttp(WemoDev *w)) {
+void fetchHttp(int i) {
   char buf[128];
+  WemoDev *w = &device[i];
 // LOCATION: http://10.0.1.15:49153/setup.xml
   if (w->client.connect(w->addr,w->port)) {
         w->client.print("GET http://");
@@ -78,15 +80,13 @@ TRICK17(char *fetchHttp(WemoDev *w)) {
 TRICK17(void switchSet(String state, WemoDev *w)) {
   TCPClient client;
   String data1;
-  char buf[255];
 
   // only do rooms ... that is, things with 'oom' in the name
 
-  sprintf(buf, "set %s %s:%d %s", state.c_str(), w->addr, w->port, w->name);  
-  DEBUG_PRINT(buf);
+  DEBUG_PRINT("set %s %s:%d %s", state.c_str(), w->addr, w->port, w->name);  
 
   if (strstr(w->name, "oom") == 0) {
-    DEBUG_PRINT("not a room. skipping state.");
+    Serial.println("not a room. skipping state.");
     return;
   }
 #ifdef MUTE_WEMO
@@ -181,8 +181,6 @@ void loopWemo() {
             packetSize = udp.parsePacket();
         }	    
 
-  char buf[512];
-  char *name;
   // check all the devices names
   for (int i=0; i<devcount; i++) {
    WemoDev *w = &device[i];
@@ -193,13 +191,9 @@ void loopWemo() {
        char *name = strstr(datahttp, "<friendlyName>") + 14;
        char *e = strstr(datahttp, "</friendlyName>");
        *e = 0;
-       w->name = bufcur;
-       strcpy(bufcur, name);
-       bufcur += strlen(name);
-       *bufcur++ = 0;
-       sprintf(buf, "WemoDev %i %s:%i %s",
+       strcpy(w->name, name);
+       DEBUG_PRINT("WemoDev %i %s:%i %s",
    	       devcount, w->addr, w->port, w->name);
-       Serial.println(buf);
        if (client.connected()) {
          client.stop();
        }

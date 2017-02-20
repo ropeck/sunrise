@@ -14,10 +14,13 @@ tmElements_t tm;
 
 
 #ifdef DEBUG
- char buf[255];
- #define DEBUG_PRINT(fmt, ...) sprintf(buf, fmt, __VA_ARGS__); Serial.println(buf);
+  char debug_buf2[255];
+
+#ifndef DEBUG_PRINT
+ #define DEBUG_PRINT(fmt, ...) sprintf(debug_buf2, fmt, __VA_ARGS__); Serial.println(debug_buf2);
 #else
  #define DEBUG_PRINT(fmt, ...)
+#endif
 #endif
 
 
@@ -68,8 +71,6 @@ void setColor() {    // set led colors for current time of day
 }
 
 void setup() {
-    time_t t;
-
     b.begin();
    
     RGB.control(true);
@@ -130,7 +131,7 @@ void loop() {
     loopWemo();
     if (Time.now() > nextTime) {
       setColor();  
-      DEBUG_PRINT("time: %d", Time.now());
+      DEBUG_PRINT("time: %d", (int)Time.now());
       nextTime = Time.now() + 10;
     }
 // have to ignore button 4 because it's also the D7 led and I want that off
