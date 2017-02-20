@@ -1,8 +1,10 @@
 #include "InternetButton.h"
-#include "ntp-time.h"
 
-NtpTime* ntpTime;
-static int alarm;
+#include "Time.h"
+#include "TimeLib.h"
+
+time_t alarm;
+tmElements_t tm;
 
 #define ON "1"
 #define OFF "0"
@@ -31,6 +33,13 @@ void switchOff();
 void loopWemo();
 void setupWemo();
 
+enum states {
+  ALARM_SET,
+  ALARM_OFF,
+  ALARM_RINGING
+};
+enum states state;
+
 void setColor() {    // set led colors for current time of day
   int n = min(255,max(0,alarm - Time.now()));
   b.allLedsOn(n,n,0);
@@ -38,11 +47,21 @@ void setColor() {    // set led colors for current time of day
 }
 
 void setup() {
-    ntpTime = new NtpTime(15);  // Do an ntp update every 15 minutes;
-    ntpTime->start();
-    alarm = Time.now() + 255 + 5;
-
+    time_t t;
     b.begin();
+   
+    breakTime(Time.now(), tm); 
+    DEBUG_PRINT("time now %02d:%02d", tm.Hour, tm.Minute);
+    tm.Hour = 14;  // 6am Pacific
+    tm.Minute = 0;
+    tm.Second = 0;
+    alarm = makeTime(tm);
+    if (Time.now() > alarm) {
+      alarm += 24*60*60;
+    }
+    DEBUG_PRINT("time %d", Time.now());
+    DEBUG_PRINT("alarm %d", alarm);
+
     RGB.control(true);
     RGB.brightness(32);  
     pinMode(D7, INPUT_PULLDOWN);
@@ -51,6 +70,7 @@ void setup() {
     yValue = b.readY();
     zValue = b.readZ();
     setupWemo();
+    state = ALARM_SET;
 }
 
 void flashlights() {
@@ -96,7 +116,10 @@ int brightness(int when) {
 
 void loop() {
     loopWemo();
-    setColor();  
+    if ((Time.now() % 10) == 0) {
+      setColor();  
+      DEBUG_PRINT("time: %d", Time.now());
+    }
 // have to ignore button 4 because it's also the D7 led and I want that off
     
     if (anyButtonPressed()) {
