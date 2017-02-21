@@ -127,8 +127,10 @@ int brightness(int when) {
 
 time_t nextTime = 0;
 
+void showDevices();
 void loop() {
     if (Time.now() > nextTime) {
+      showDevices();
       setColor();  
       DEBUG_PRINT("time: %d", (int)Time.now());
       nextTime = Time.now() + 10;

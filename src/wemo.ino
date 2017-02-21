@@ -59,8 +59,7 @@ void _updateWemoDevice(InternetButton b, char *url) {
   int match = 0;
   for (i=0; i<devcount; i++) {
     if ((strcmp(device[i].addr,w.addr) == 0) &&
-        (device[i].port == w.port) && 
-        (*device[i].name != 0)) {
+        (device[i].port == w.port)) {
       DEBUG_PRINT("match %d %s:%d %s", i, device[i].addr, device[i].port,
 	device[i].name);
       match = 1;
@@ -68,14 +67,34 @@ void _updateWemoDevice(InternetButton b, char *url) {
     }
   }
   if (match == 0) {
+      i = devcount++;
       DEBUG_PRINT("added %d %s", i, w.addr); 
-      devcount++;
       pending++;
       b.playSong("E3,8,");
       showGauge(b, pending);
   }
+  if (*device[i].name != 0) {  // skip if the name is already set
+    return;
+  }
   device[i] = w;
+  { char buf[255];
+  sprintf(buf, "dev %d %s:%d %s", i, 
+	device[i].addr, device[i].port, device[i].name);
+     Serial.println(buf);
+  }
   fetchHttp(i);
+}
+
+void showDevices() {
+  char buf[80];
+  WemoDev *w = device;
+  Serial.println("Devices");
+  for (int i=0; i<devcount; i++) {
+    sprintf(buf, "%d %s:%d %s", i, 
+	w->addr, w->port, w->name);
+    w++;
+    Serial.println(buf);
+  }
 }
 
 #define DATABUFSIZE 10240
@@ -176,6 +195,7 @@ void loopWemo(InternetButton b) {
   TCPClient client;
 
   if (lastTime == 0 || millis() - lastTime > 30 * 1000) {
+      Serial.println("");
       lastTime = millis();
       // _resetWemoDeviceList(b); 
       String searchPacket = "M-SEARCH * HTTP/1.1\r\n";
@@ -206,7 +226,7 @@ void loopWemo(InternetButton b) {
       host = strstr((char *)packetBuffer, "LOCATION: http://")+17;
       char *end = strstr(host, "/");
       *end = 0;
-	    _updateWemoDevice(b, host);
+      _updateWemoDevice(b, host);
       packetSize = udp.parsePacket();
   }	    
 
