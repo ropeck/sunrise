@@ -57,7 +57,7 @@ void _resetWemoDeviceList() {
 
 // convert then see if it's already been seen
 
-void _updateWemoDevice(char *url) {
+void _updateWemoDevice(InternetButton b, char *url) {
   WemoDev w;
   char *portstr;
   portstr = strchr(url,':');
@@ -71,6 +71,7 @@ void _updateWemoDevice(char *url) {
   device[devcount] = w;
   fetchHttp(devcount);
   devcount++;
+  b.playSong("E3,8,E4,8,");
 }
 
 #define DATABUFSIZE 10240
@@ -85,7 +86,7 @@ void fetchHttp(int i) {
         sprintf(buf,":%i/setup.xml HTTP/1.1", w->port);
         w->client.println(buf);
         w->client.println();
-   }
+  }
 }
 
 TRICK17(void switchSet(String state, WemoDev *w)) {
@@ -150,7 +151,7 @@ void setupWemo() {
 }
 
 unsigned long lastTime = 0;
-void loopWemo() {
+void loopWemo(InternetButton b) {
   char *host;
   int packetSize;
   IPAddress UpNPIP(239, 255, 255, 250);
@@ -188,7 +189,7 @@ void loopWemo() {
             host = strstr((char *)packetBuffer, "LOCATION: http://")+17;
             char *end = strstr(host, "/");
             *end = 0;
-	    _updateWemoDevice(host);
+	    _updateWemoDevice(b, host);
             packetSize = udp.parsePacket();
         }	    
 
@@ -208,6 +209,8 @@ void loopWemo() {
        if (client.connected()) {
          client.stop();
        }
+       b.playSong("A4,8,");
+       b.playSong("A4,4,");
      }
   }
 

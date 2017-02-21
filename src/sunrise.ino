@@ -33,7 +33,7 @@ TCPClient client;
 
 void switchOn();
 void switchOff();
-void loopWemo();
+void loopWemo(InternetButton);
 void setupWemo();
 
 enum states {
@@ -128,7 +128,7 @@ int brightness(int when) {
 time_t nextTime = 0;
 
 void loop() {
-    loopWemo();
+    loopWemo(b);
     if (Time.now() > nextTime) {
       setColor();  
       DEBUG_PRINT("time: %d", (int)Time.now());
