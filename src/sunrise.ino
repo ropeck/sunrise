@@ -69,8 +69,13 @@ void setColor() {    // set led colors for current time of day
   time_t t = now;
 
   t = min(max(prealarm, t),alarm);
-  
+   
   int n = 255 * (t - prealarm) / (30*60);
+
+  if (t > alarm + 15*60) {
+    n = 0;
+  }
+
   b.allLedsOn(n,n,0);
   DEBUG_PRINT("color %d", n);
 }

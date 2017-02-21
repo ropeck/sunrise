@@ -9,5 +9,7 @@
   * wake up alarm light
   * off button for wake up light
 
+
+## DONE
   * only update dev item list, don't rebuild each time
 
