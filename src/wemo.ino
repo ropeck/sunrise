@@ -29,9 +29,10 @@ typedef struct {
 } WemoDev;
 WemoDev device[16];
 int devcount;
+int pending;
 
 TRICK17(char *fetchHttp(WemoDev *));
-void _resetWemoDeviceList() {
+void _resetWemoDeviceList(InternetButton b) {
   WemoDev *w = device;
   for (int i=0; i<devcount; i++) {
     if (w->client.connected()) {
@@ -39,6 +40,8 @@ void _resetWemoDeviceList() {
     }
   }
   devcount = 0;
+  pending = 0;
+  showGauge(b, pending);
 }
 
 // consider how to update the existing table instead of
@@ -71,7 +74,9 @@ void _updateWemoDevice(InternetButton b, char *url) {
   device[devcount] = w;
   fetchHttp(devcount);
   devcount++;
+  pending++;
   b.playSong("E3,8,E4,8,");
+  showGauge(b, pending);
 }
 
 #define DATABUFSIZE 10240
@@ -141,13 +146,26 @@ void switchOff() {
   _switch(OFF);
 }
 
+void showGauge(InternetButton b, int i) {
+  for (int n=0; n<i+1; n++) {
+    b.ledOn(n, 0,0,255);
+  }
+}
+
 UDP udp;
-void setupWemo() {
+void setupWemo(InternetButton b) {
   // scan for wemo switches with a udp broadcast
 
   randomSeed(analogRead(A0));
   delay(random(2000));  // avoid herd load on power up
   udp.begin(1901);      // prep to listen for wemo devices
+
+  // flashy startup showing scan for wemo devices (one time)
+  for (int n=11; n>=0; n--) {
+    b.ledOn(n, 128, 0, 128);
+    delay(50);
+    b.ledOff(n);
+  }
 }
 
 unsigned long lastTime = 0;
@@ -160,7 +178,7 @@ void loopWemo(InternetButton b) {
 
   if (lastTime == 0 || millis() - lastTime > 30 * 1000) {
       lastTime = millis();
-      _resetWemoDeviceList(); 
+      _resetWemoDeviceList(b); 
       String searchPacket = "M-SEARCH * HTTP/1.1\r\n";
       searchPacket.concat("HOST: 239.255.255.250:1900\r\n");
       searchPacket.concat("MAN: \"ssdp:discover\"\r\n");
@@ -181,17 +199,17 @@ void loopWemo(InternetButton b) {
       udp.endPacket();
   }
   
-        packetSize = udp.parsePacket();
-        while(packetSize != 0){
-            //Serial.println("Device discovered");
-            byte packetBuffer[packetSize+1];
-            udp.read(packetBuffer, packetSize);
-            host = strstr((char *)packetBuffer, "LOCATION: http://")+17;
-            char *end = strstr(host, "/");
-            *end = 0;
+  packetSize = udp.parsePacket();
+  while(packetSize != 0){
+      //Serial.println("Device discovered");
+      byte packetBuffer[packetSize+1];
+      udp.read(packetBuffer, packetSize);
+      host = strstr((char *)packetBuffer, "LOCATION: http://")+17;
+      char *end = strstr(host, "/");
+      *end = 0;
 	    _updateWemoDevice(b, host);
-            packetSize = udp.parsePacket();
-        }	    
+      packetSize = udp.parsePacket();
+  }	    
 
   // check all the devices names
   for (int i=0; i<devcount; i++) {
@@ -210,6 +228,9 @@ void loopWemo(InternetButton b) {
          client.stop();
        }
        b.playSong("A4,8,");
+       b.ledOff(pending--);
+       showGauge(b, pending);
+
        b.playSong("A4,4,");
      }
   }

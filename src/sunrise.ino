@@ -34,7 +34,7 @@ TCPClient client;
 void switchOn();
 void switchOff();
 void loopWemo(InternetButton);
-void setupWemo();
+void setupWemo(InternetButton);
 
 enum states {
   ALARM_SET,
@@ -80,7 +80,7 @@ void setup() {
     xValue = b.readX();
     yValue = b.readY();
     zValue = b.readZ();
-    setupWemo();
+    setupWemo(b);
     state = ALARM_SET;
 }
 
