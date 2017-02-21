@@ -128,12 +128,12 @@ int brightness(int when) {
 time_t nextTime = 0;
 
 void loop() {
-    loopWemo(b);
     if (Time.now() > nextTime) {
       setColor();  
       DEBUG_PRINT("time: %d", (int)Time.now());
       nextTime = Time.now() + 10;
     }
+    loopWemo(b);
 // have to ignore button 4 because it's also the D7 led and I want that off
     
     if (anyButtonPressed()) {

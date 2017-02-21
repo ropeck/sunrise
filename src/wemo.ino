@@ -44,22 +44,6 @@ void _resetWemoDeviceList(InternetButton b) {
   showGauge(b, pending);
 }
 
-// consider how to update the existing table instead of
-// dropping all of them and reloading each time
-//
-// somehow deal with the allocated strings for the names
-// without memory management of the hostbuf space
-//
-// each new dev, check for match and update if found
-// if no match, add at the end
-// beep when new ones are found
-//
-// timeout devices that aren't seen for a long time by
-// updating the devices last seen time and purging ones
-// that are very old
-
-// convert then see if it's already been seen
-
 void _updateWemoDevice(InternetButton b, char *url) {
   WemoDev w;
   char *portstr;
@@ -71,12 +55,27 @@ void _updateWemoDevice(InternetButton b, char *url) {
   for (int i=0; i<MAX_NAME_LENGTH; i++) {
     w.name[i] = 0;
   }
-  device[devcount] = w;
-  fetchHttp(devcount);
-  devcount++;
-  pending++;
-  b.playSong("E3,8,E4,8,");
-  showGauge(b, pending);
+  int i;
+  int match = 0;
+  for (i=0; i<devcount; i++) {
+    if ((strcmp(device[i].addr,w.addr) == 0) &&
+        (device[i].port == w.port) && 
+        (*device[i].name != 0)) {
+      DEBUG_PRINT("match %d %s:%d %s", i, device[i].addr, device[i].port,
+	device[i].name);
+      match = 1;
+      break;
+    }
+  }
+  if (match == 0) {
+      DEBUG_PRINT("added %d %s", i, w.addr); 
+      devcount++;
+      pending++;
+      b.playSong("E3,8,");
+      showGauge(b, pending);
+  }
+  device[i] = w;
+  fetchHttp(i);
 }
 
 #define DATABUFSIZE 10240
@@ -178,7 +177,7 @@ void loopWemo(InternetButton b) {
 
   if (lastTime == 0 || millis() - lastTime > 30 * 1000) {
       lastTime = millis();
-      _resetWemoDeviceList(b); 
+      // _resetWemoDeviceList(b); 
       String searchPacket = "M-SEARCH * HTTP/1.1\r\n";
       searchPacket.concat("HOST: 239.255.255.250:1900\r\n");
       searchPacket.concat("MAN: \"ssdp:discover\"\r\n");
@@ -215,8 +214,8 @@ void loopWemo(InternetButton b) {
   for (int i=0; i<devcount; i++) {
    WemoDev *w = &device[i];
    client = device[i].client; 
-     if (client.available()) {
-       client.readString().toCharArray(datahttp, DATABUFSIZE);
+     if (w->client.available()) {
+       w->client.readString().toCharArray(datahttp, DATABUFSIZE);
 // <friendlyName>Living Room</friendlyName>
        char *name = strstr(datahttp, "<friendlyName>") + 14;
        char *e = strstr(datahttp, "</friendlyName>");
@@ -224,15 +223,14 @@ void loopWemo(InternetButton b) {
        strncpy(w->name, name, 32);
        DEBUG_PRINT("WemoDev %i %s:%i %s",
    	       devcount, w->addr, w->port, w->name);
-       if (client.connected()) {
-         client.stop();
+       if (w->client.connected()) {
+         w->client.stop();
        }
-       b.playSong("A4,8,");
        b.ledOff(pending--);
-       showGauge(b, pending);
 
-       b.playSong("A4,4,");
+       b.playSong("A6,8,");
      }
+     showGauge(b, pending);
   }
 
 }
