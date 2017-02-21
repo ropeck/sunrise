@@ -45,23 +45,28 @@ enum states state;
 
 // https://github.com/neilbartlett/color-temperature/blob/master/index.js
 
+char *timeStr(time_t t) {
+  static char tbuf[32];
+  sprintf(tbuf, "%d:%02d:%02d", hour(t), minute(t), second(t));
+  return tbuf;
+}
+
 void setColor() {    // set led colors for current time of day
   time_t prealarm;
-    breakTime(Time.now(), tm); 
-    DEBUG_PRINT("time now %02d:%02d", tm.Hour, tm.Minute);
-    tm.Hour = 14;  // 6am Pacific
-    tm.Hour = (14+12+4)%24;  // 10pm Pacific
+  time_t alarm;
+  time_t now = Time.now() - 8*60*60;
+    breakTime(now, tm);  // adjust for PDT and UTC
+    DEBUG_PRINT("time now %s", timeStr(now));
+    tm.Hour = 6;
     tm.Minute = 0;
     tm.Second = 0;
     alarm = makeTime(tm);
-    prealarm = alarm - 30*60; // 30 minutes earlier
     if (Time.now() > alarm) {
       alarm += 24*60*60;
-      prealarm += 24*60*60;
     }
-    DEBUG_PRINT("time %d", (int)Time.now());
-    DEBUG_PRINT("alarm %d", (int)alarm);
-  time_t t = Time.now();
+    prealarm = alarm - 30*60; // 30 minutes earlier
+    DEBUG_PRINT("alarm %s", timeStr(alarm));
+  time_t t = now;
 
   t = min(max(prealarm, t),alarm);
   
@@ -129,11 +134,12 @@ time_t nextTime = 0;
 
 void showDevices();
 void loop() {
-    if (Time.now() > nextTime) {
+    if (Time.now() >= nextTime) {
       showDevices();
       setColor();  
       DEBUG_PRINT("time: %d", (int)Time.now());
       nextTime = Time.now() + 10;
+      Serial.println("");
     }
     loopWemo(b);
 // have to ignore button 4 because it's also the D7 led and I want that off
