@@ -142,7 +142,7 @@ void loop() {
     if (Time.now() >= nextTime) {
       showDevices();
       setColor();  
-      DEBUG_PRINT("time: %d", (int)Time.now());
+      // DEBUG_PRINT("time: %d", (int)Time.now());
       nextTime = Time.now() + 10;
       Serial.println("");
     }
