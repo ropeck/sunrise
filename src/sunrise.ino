@@ -56,33 +56,15 @@ char *timeStr(time_t t) {
   return tbuf;
 }
 
-void setColor() {    // set led colors for current time of day
+void setColor(time_t alarm) {    // set led colors for current time of day
   time_t prealarm;
-  time_t alarm;
-  time_t now = Time.now() - 8*60*60;
-    breakTime(now, tm);  // adjust for PDT and UTC
-    DEBUG_PRINT("time now %s", timeStr(now));
-    tm.Hour = 6;
-    tm.Minute = 0;
-    tm.Second = 0;
-    alarm = makeTime(tm);
-    if (Time.now() > alarm) {
-      alarm += 24*60*60;
-    }
-    prealarm = alarm - 30*60; // 30 minutes earlier
-    DEBUG_PRINT("alarm %s", timeStr(alarm));
-  time_t t = now;
-
-  t = min(max(prealarm, t),alarm);
+  time_t now = Time.now();
+  prealarm = alarm - 30*60; // 30 minutes earlier
    
-  int n = 255 * (t - prealarm) / (30*60);
+  int n = 255 * (int)(now - prealarm) / (30*60);
 
-  if (t > alarm + 15*60) {
-    n = 0;
-  }
-
+  DEBUG_PRINT("t %s  color %d", timeStr(now), n);
   b.allLedsOn(n,n,0);
-  DEBUG_PRINT("color %d", n);
 }
 
 int state;
@@ -174,11 +156,10 @@ time_t nextTime = 0;
 void showDevices();
 void loop() {
   time_t alarm = alarm_time[state];
-  setColor();  
+  setColor(alarm);  
   if (anyButtonPressed()) {
     state = toggle_state(state);
     beep(state);
-    //set color = 0
   }
   // if prev_color != color: adjust the color one step closer
   if (Time.now() >= nextTime) {
