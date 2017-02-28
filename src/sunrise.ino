@@ -9,6 +9,9 @@ tmElements_t tm;
 #define ON "1"
 #define OFF "0"
 
+#define ASLEEP 0
+#define AWAKE 1
+
 // #define MUTE_WEMO 1
 //#undef DEBUG
 
@@ -36,12 +39,14 @@ void switchOff();
 void loopWemo(InternetButton);
 void setupWemo(InternetButton);
 
-enum states {
-  ALARM_SET,
-  ALARM_OFF,
-  ALARM_RINGING
-};
-enum states state;
+
+int toggle_state(s) {
+  if (s == AWAKE) {
+    return ASLEEP;
+  } else {
+    return AWAKE;
+  }
+}
 
 // https://github.com/neilbartlett/color-temperature/blob/master/index.js
 
@@ -80,6 +85,9 @@ void setColor() {    // set led colors for current time of day
   DEBUG_PRINT("color %d", n);
 }
 
+int state;
+time_t alarm_time[2]; // ASLEEP:6am  AWAKE:10pm
+
 void setup() {
     b.begin();
    
@@ -91,7 +99,9 @@ void setup() {
     yValue = b.readY();
     zValue = b.readZ();
     setupWemo(b);
-    state = ALARM_SET;
+    state = AWAKE;
+    alarm_time[ASLEEP]=0; // TODO
+    alarm_time[AWAKE]=0;
 }
 
 void flashlights() {
@@ -135,10 +145,36 @@ int brightness(int when) {
   return br;
 }
 
+void beep(int state) { 
+  switch (state) {
+    case ASLEEP:
+      switchOff();
+      b.playSong("E5,8,G5,8,E6,8,C6,8,D6,8,G6,8");
+      break;
+    case AWAKE:
+      switchOn();
+      b.playSong("C4,8,E4,8,G4,8,C5,8,G5,4");
+      break;
+  }
+  flashlights();
+}
+
+
 time_t nextTime = 0;
 
 void showDevices();
 void loop() {
+  time_t = alarm_times[state];
+  setColor();  
+  if anyButtonPressed() {
+    state = toggle_state(state);
+    beep(state);
+    //set color = 0
+  }
+  // if prev_color != color: adjust the color one step closer
+}
+
+void oldloop() {
     if (Time.now() >= nextTime) {
       showDevices();
       setColor();  
@@ -148,19 +184,5 @@ void loop() {
     }
     loopWemo(b);
 // have to ignore button 4 because it's also the D7 led and I want that off
-    
-    if (anyButtonPressed()) {
-      switchOff();
-      b.playSong("E5,8,G5,8,E6,8,C6,8,D6,8,G6,8");
-      flashlights();
-      return;
-    }
-
-    if (shaken()) {
-      switchOn();
-      b.playSong("C4,8,E4,8,G4,8,C5,8,G5,4");
-      flashlights();
-    }
-
-    delay(50);  // a little delay to help measure movement
+       delay(50);  // a little delay to help measure movement
 }
