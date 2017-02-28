@@ -40,7 +40,7 @@ void loopWemo(InternetButton);
 void setupWemo(InternetButton);
 
 
-int toggle_state(s) {
+int toggle_state(int s) {
   if (s == AWAKE) {
     return ASLEEP;
   } else {
@@ -88,8 +88,6 @@ void setColor() {    // set led colors for current time of day
 int state;
 time_t alarm_time[2]; // ASLEEP:6am  AWAKE:10pm
 
-time_t tmConvert_t(int YYYY, byte MM, byte DD, byte hh, byte mm, byte ss
-{
 
 void flashlights() {
       b.rainbow(10);
@@ -161,13 +159,13 @@ void setup() {
   state = AWAKE;
 
   tmElements_t tm;
-  breakTime(now(), &tm);
+  breakTime(now(), tm);
   tm.Hour = 6;
-  tm.Minute = 0
-  tm.Second = 0
-  alarm_time[ASLEEP]= makeTime(tmSet);  // 6am
+  tm.Minute = 0;
+  tm.Second = 0;
+  alarm_time[ASLEEP]= makeTime(tm);  // 6am
   tm.Hour = 22;
-  alarm_time[AWAKE]= makeTime(tmSet);   // 10pm
+  alarm_time[AWAKE]= makeTime(tm);   // 10pm
 }
 
 
@@ -175,9 +173,9 @@ time_t nextTime = 0;
 
 void showDevices();
 void loop() {
-  time_t alarm = alarm_times[state];
+  time_t alarm = alarm_time[state];
   setColor();  
-  if anyButtonPressed() {
+  if (anyButtonPressed()) {
     state = toggle_state(state);
     beep(state);
     //set color = 0
@@ -192,5 +190,4 @@ void loop() {
   delay(50);
 }
 
-void oldloop() {
 
