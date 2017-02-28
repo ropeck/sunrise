@@ -172,17 +172,14 @@ void loop() {
     //set color = 0
   }
   // if prev_color != color: adjust the color one step closer
+  if (Time.now() >= nextTime) {
+    showDevices();
+    // DEBUG_PRINT("time: %d", (int)Time.now());
+    nextTime = Time.now() + 10;
+  }
+  loopWemo(b);
+  delay(50);
 }
 
 void oldloop() {
-    if (Time.now() >= nextTime) {
-      showDevices();
-      setColor();  
-      // DEBUG_PRINT("time: %d", (int)Time.now());
-      nextTime = Time.now() + 10;
-      Serial.println("");
-    }
-    loopWemo(b);
-// have to ignore button 4 because it's also the D7 led and I want that off
-       delay(50);  // a little delay to help measure movement
-}
+
