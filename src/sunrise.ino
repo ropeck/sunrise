@@ -91,31 +91,6 @@ time_t alarm_time[2]; // ASLEEP:6am  AWAKE:10pm
 time_t tmConvert_t(int YYYY, byte MM, byte DD, byte hh, byte mm, byte ss
 {
 
-
-void setup() {
-  b.begin();
- 
-  RGB.control(true);
-  RGB.brightness(32);  
-  pinMode(D7, INPUT_PULLDOWN);
-  Serial.begin(9600);
-  xValue = b.readX();
-  yValue = b.readY();
-  zValue = b.readZ();
-  setupWemo(b);
-
-  state = AWAKE;
-
-  tmElements_t tm;
-  breakTime(now(), &tm);
-  tm.Hour = 6;
-  tm.Minute = 0
-  tm.Second = 0
-  alarm_time[ASLEEP]= makeTime(tmSet);  // 6am
-  tm.Hour = 22;
-  alarm_time[AWAKE]= makeTime(tmSet);   // 10pm
-}
-
 void flashlights() {
       b.rainbow(10);
       delay(100);
@@ -171,12 +146,36 @@ void beep(int state) {
   flashlights();
 }
 
+void setup() {
+  b.begin();
+ 
+  RGB.control(true);
+  RGB.brightness(32);  
+  pinMode(D7, INPUT_PULLDOWN);
+  Serial.begin(9600);
+  xValue = b.readX();
+  yValue = b.readY();
+  zValue = b.readZ();
+  setupWemo(b);
+
+  state = AWAKE;
+
+  tmElements_t tm;
+  breakTime(now(), &tm);
+  tm.Hour = 6;
+  tm.Minute = 0
+  tm.Second = 0
+  alarm_time[ASLEEP]= makeTime(tmSet);  // 6am
+  tm.Hour = 22;
+  alarm_time[AWAKE]= makeTime(tmSet);   // 10pm
+}
+
 
 time_t nextTime = 0;
 
 void showDevices();
 void loop() {
-  time_t = alarm_times[state];
+  time_t alarm = alarm_times[state];
   setColor();  
   if anyButtonPressed() {
     state = toggle_state(state);
