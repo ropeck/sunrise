@@ -63,7 +63,7 @@ void setColor(time_t alarm) {    // set led colors for current time of day
    
   int n = 255 * (int)(now - prealarm) / (30*60);
 
-  DEBUG_PRINT("t %s  color %d", timeStr(now), n);
+  //DEBUG_PRINT("t %s  color %d", timeStr(now), n);
   b.allLedsOn(n,n,0);
 }
 
@@ -116,18 +116,34 @@ void beep(int state) {
   switch (state) {
     case ASLEEP:
       switchOff();
-      b.playSong("E5,8,G5,8,E6,8,C6,8,D6,8,G6,8");
+      b.playSong("E5,8,G5,8,E6,8,C6,8,D6,8,G6,8,");
       break;
     case AWAKE:
       switchOn();
-      b.playSong("C4,8,E4,8,G4,8,C5,8,G5,4");
+      b.playSong("C4,8,E4,8,G4,8,C5,8,G5,4,");
       break;
   }
   flashlights();
 }
 
+int debug_mode = 0;
+
+int debugmode(String command) {
+  int mode = atoi(command.c_str());
+  b.playSong("G4,8,G4,8,G4,8,");
+  debug_mode = mode;
+  if (mode == 1) {
+    b.playSong("C5,4,");
+  } else {
+    b.playSong("C2,4,");
+  }
+}
+
+TCPServer server = TCPServer(80);
+
 void setup() {
   b.begin();
+  Particle.function("debugmode", debugmode);
  
   RGB.control(true);
   RGB.brightness(32);  
@@ -137,6 +153,11 @@ void setup() {
   yValue = b.readY();
   zValue = b.readZ();
   setupWemo(b);
+
+  IPAddress myIP = WiFi.localIP();
+  Serial.print("my address http://");
+  Serial.println(myIP);
+  server.begin();
 
   state = AWAKE;
 
@@ -154,6 +175,7 @@ void setup() {
 time_t nextTime = 0;
 
 void showDevices();
+
 void loop() {
   time_t alarm = alarm_time[state];
   setColor(alarm);  
@@ -168,6 +190,20 @@ void loop() {
     nextTime = Time.now() + 10;
   }
   loopWemo(b);
+  if (client.connected()) {
+    char buf[25555];
+    char *i = buf;
+    int size;
+    while ((size = client.available()) > 0) {
+      uint8_t buf[size];
+      client.read(buf, size);
+      Serial.write(buf, size);
+    }
+    Serial.println("");
+    client.stop();
+  } else {
+    client = server.available();
+  }  
   delay(50);
 }
 
