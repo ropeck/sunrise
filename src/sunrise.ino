@@ -3,11 +3,13 @@
 #include "Time.h"
 #include "TimeLib.h"
 
-time_t alarm;
+time_t alarm = 0;
 tmElements_t tm;
 
 #define ON "1"
 #define OFF "0"
+
+#define TZ_OFFSET -8*60*60
 
 #define ASLEEP 0
 #define AWAKE 1
@@ -56,19 +58,29 @@ char *timeStr(time_t t) {
   return tbuf;
 }
 
-void setColor(time_t alarm) {    // set led colors for current time of day
+int state;
+time_t alarm_time[2]; // ASLEEP:6am  AWAKE:10pm
+
+int brightness(time_t t, time_t alarm) {
   time_t prealarm;
-  time_t now = Time.now();
+  time_t now = Time.now() + TZ_OFFSET;
   prealarm = alarm - 30*60; // 30 minutes earlier
    
   int n = 255 * (int)(now - prealarm) / (30*60);
-
-  //DEBUG_PRINT("t %s  color %d", timeStr(now), n);
-  b.allLedsOn(n,n,0);
+  n = min(max(n,0),255);
+  if (Time.now() % 10 == 0) {
+    DEBUG_PRINT("t %s  color %d", timeStr(now), n);
+    for (int i=0; i<2; i++) {
+      DEBUG_PRINT("alarm[%d]=%s",i,timeStr(alarm_time[i]));
+    }
+  }
+  return n;
 }
 
-int state;
-time_t alarm_time[2]; // ASLEEP:6am  AWAKE:10pm
+void setColor() {
+  int n = brightness(Time.now() + TZ_OFFSET, alarm);
+  b.allLedsOn(n,n,0);
+}
 
 
 void flashlights() {
@@ -92,24 +104,6 @@ int shaken() {
     //sprintf(buf, "shake %d", shake);
     //DEBUG_PRINT(buf);
     return (shake > 100);
-}
-
-
-int brightness(int when) {
-  // 0 to 255 over the 30 minutes before the alarm time
-  // pick a time for now as the target
-  static int br = 0;
-  int diff = when - Time.now();
-  br = 0;
-  if (diff < 0) {
-    br = 255;
-  }
-  if (diff < 255 && diff > 0) {
-    br = 255 - diff;
-  }
-
-  // DEBUG_PRINT("br %d %d %d", br, when, Time.now());
-  return br;
 }
 
 void beep(int state) { 
@@ -143,7 +137,6 @@ TCPServer server = TCPServer(80);
 
 void setup() {
   b.begin();
-  Particle.function("debugmode", debugmode);
  
   RGB.control(true);
   RGB.brightness(32);  
@@ -160,9 +153,13 @@ void setup() {
   server.begin();
 
   state = AWAKE;
+  setAlarms();
+}
 
+
+void setAlarms() {
   tmElements_t tm;
-  breakTime(now(), tm);
+  breakTime(Time.now() + TZ_OFFSET, tm);
   tm.Hour = 6;
   tm.Minute = 0;
   tm.Second = 0;
@@ -171,25 +168,11 @@ void setup() {
   alarm_time[AWAKE]= makeTime(tm);   // 10pm
 }
 
-
 time_t nextTime = 0;
 
 void showDevices();
 
-void loop() {
-  time_t alarm = alarm_time[state];
-  setColor(alarm);  
-  if (anyButtonPressed()) {
-    state = toggle_state(state);
-    beep(state);
-  }
-  // if prev_color != color: adjust the color one step closer
-  if (Time.now() >= nextTime) {
-    showDevices();
-    // DEBUG_PRINT("time: %d", (int)Time.now());
-    nextTime = Time.now() + 10;
-  }
-  loopWemo(b);
+void loopWeb() {
   if (client.connected()) {
     char buf[25555];
     char *i = buf;
@@ -203,7 +186,30 @@ void loop() {
     client.stop();
   } else {
     client = server.available();
-  }  
+  }
+}
+
+
+void loop() {
+  if (Time.now() > alarm) {
+    setAlarms();
+  }
+  alarm = alarm_time[state];
+  
+  setColor();  
+  if (anyButtonPressed()) {
+    state = toggle_state(state);
+    beep(state);
+  }
+  // if prev_color != color: adjust the color one step closer
+  if (Time.now() >= nextTime) {
+    showDevices();
+    DEBUG_PRINT("time: %s", timeStr(Time.now()+TZ_OFFSET));
+    DEBUG_PRINT("alarm: %s", timeStr(alarm));
+    nextTime = Time.now() + 10;
+  }
+  loopWemo(b);
+  loopWeb();
   delay(50);
 }
 
