@@ -69,7 +69,7 @@ time_t makeTimeAt(int hour) {
 time_t time_startup = Time.now();
 
 #ifndef REALTIME
-time_t test_time_start = makeTimeAt(21)+60*50;
+time_t test_time_start = makeTimeAt(21)+60*55;
 int test_time_multiple = 10;
 
 time_t time_now() {
@@ -184,17 +184,11 @@ void setup() {
 void setAlarms() {
   alarm_time[ASLEEP]= makeTimeAt(6);  // 6am
   alarm_time[AWAKE]= makeTimeAt(22);   // 10pm
-  switch (state) {
-    case ASLEEP:
-      if (alarm_time[AWAKE] < time_now()) {
-        alarm_time[AWAKE] += 60*60*24;
-      } 
-      break;
-    case AWAKE:
-      if (alarm_time[ASLEEP] < time_now()) {
-        alarm_time[ASLEEP] += 60*60*24;
-      }
-      break;
+  if (time_now() > alarm_time[AWAKE] + 60*60) {
+    alarm_time[AWAKE] += 60*60*24;
+  } 
+  if (time_now() > alarm_time[ASLEEP] + 60*60) {
+    alarm_time[ASLEEP] += 60*60*24;
   }
 }
 
@@ -230,6 +224,7 @@ void loop() {
   if (anyButtonPressed()) {
     state = toggle_state(state);
     beep(state);
+    setAlarms();
   }
   // if prev_color != color: adjust the color one step closer
   if (time_now() >= nextTime) {
@@ -240,7 +235,6 @@ void loop() {
   }
   loopWemo(b);
   loopWeb();
-  delay(50);
 }
 
 
