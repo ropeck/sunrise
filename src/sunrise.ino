@@ -69,7 +69,7 @@ time_t makeTimeAt(int hour) {
 time_t time_startup = Time.now();
 
 #ifndef REALTIME
-time_t test_time_start = makeTimeAt(21)+60*55;
+time_t test_time_start = makeTimeAt(5)+60*50;
 int test_time_multiple = 10;
 
 time_t time_now() {
@@ -88,16 +88,23 @@ int state;
 time_t alarm_time[2]; // ASLEEP:6am  AWAKE:10pm
 
 int brightness(time_t t, time_t alarm) {
+  char *statestr;
+  static time_t next_time;
   time_t prealarm;
   time_t now = time_now();
   prealarm = alarm - 30*60; // 30 minutes earlier
    
   int n = 255 * (int)(now - prealarm) / (30*60);
   n = min(max(n,0),255);
-  if (time_now() % 10 == 0) {
+  if (time_now() > next_time) {
+    next_time = time_now() + 10;
     char alarmStr[16];
     strncpy(alarmStr, timeStr(alarm), 16);
-    DEBUG_PRINT("t %s %s color %d", timeStr(now), alarmStr, n);
+    statestr = "ASLEEP";
+    if (state == AWAKE) {
+      statestr = "AWAKE";
+    }
+    DEBUG_PRINT("%s %s %s color %d", statestr, timeStr(now), alarmStr, n);
   }
   return n;
 }
