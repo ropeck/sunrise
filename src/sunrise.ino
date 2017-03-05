@@ -9,14 +9,12 @@ tmElements_t tm;
 #define ON "1"
 #define OFF "0"
 
-#define TZ_OFFSET -8*60*60
 
 #define ASLEEP 0
 #define AWAKE 1
 
 //#define MUTE_WEMO 1
 //#undef DEBUG
-
 
 #ifdef DEBUG
   char debug_buf2[255];
@@ -28,6 +26,11 @@ tmElements_t tm;
 #endif
 #endif
 
+#define TZ_OFFSET -8*60*60
+
+time_t time_now() {
+  return Time.now() + TZ_OFFSET
+}
 
 int xValue;
 int yValue;
@@ -64,12 +67,12 @@ time_t alarm_time[2]; // ASLEEP:6am  AWAKE:10pm
 
 int brightness(time_t t, time_t alarm) {
   time_t prealarm;
-  time_t now = Time.now() + TZ_OFFSET;
+  time_t now = time_now();
   prealarm = alarm - 30*60; // 30 minutes earlier
    
   int n = 255 * (int)(now - prealarm) / (30*60);
   n = min(max(n,0),255);
-  if (Time.now() % 10 == 0) {
+  if (time_now() % 10 == 0) {
     char alarmStr[16];
     strncpy(alarmStr, timeStr(alarm), 16);
     DEBUG_PRINT("t %s %s color %d", timeStr(now), alarmStr, n);
@@ -78,7 +81,7 @@ int brightness(time_t t, time_t alarm) {
 }
 
 void setColor() {
-  int n = brightness(Time.now() + TZ_OFFSET, alarm);
+  int n = brightness(time_now(), alarm);
   b.allLedsOn(n,n,0);
 }
 
@@ -159,17 +162,17 @@ void setup() {
 
 void setAlarms() {
   tmElements_t tm;
-  breakTime(Time.now() + TZ_OFFSET, tm);
+  breakTime(time_now(), tm);
   tm.Hour = 6;
   tm.Minute = 0;
   tm.Second = 0;
   alarm_time[ASLEEP]= makeTime(tm);  // 6am
-  if (alarm_time[ASLEEP] < Time.now()) {
+  if (alarm_time[ASLEEP] < time_now()) {
     alarm_time[ASLEEP] += 60*60*24;
   }
   tm.Hour = 22;
   alarm_time[AWAKE]= makeTime(tm);   // 10pm
-  if (alarm_time[AWAKE] < Time.now()) {
+  if (alarm_time[AWAKE] < time_now()) {
     alarm_time[AWAKE] += 60*60*24;
   }
 }
@@ -197,7 +200,7 @@ void loopWeb() {
 
 
 void loop() {
-  if (Time.now() > alarm) {
+  if (time_now() > alarm) {
     setAlarms();
   }
   alarm = alarm_time[state];
@@ -208,11 +211,11 @@ void loop() {
     beep(state);
   }
   // if prev_color != color: adjust the color one step closer
-  if (Time.now() >= nextTime) {
+  if (time_now() >= nextTime) {
     showDevices();
-    DEBUG_PRINT("time: %s", timeStr(Time.now()+TZ_OFFSET));
+    DEBUG_PRINT("time: %s", timeStr(time_now()));
     DEBUG_PRINT("alarm: %s", timeStr(alarm));
-    nextTime = Time.now() + 10;
+    nextTime = time_now() + 10;
   }
   loopWemo(b);
   loopWeb();
