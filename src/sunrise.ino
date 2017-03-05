@@ -130,7 +130,7 @@ void setColorTemp(int temp, int brightness) {
   cg = min(255, max(0, cg));
 
   cb = 255;
-  if (t > 66) {
+  if (t < 66) {
     if (t <= 19) {
       cb = 0;
     } else {
