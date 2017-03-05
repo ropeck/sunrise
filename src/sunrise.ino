@@ -59,7 +59,7 @@ time_t time_now() {
 
 time_t makeTimeAt(int hour) {
   tmElements_t tm;
-  breakTime(time_now(), tm);
+  breakTime(Time.now(), tm);
   tm.Hour = hour;
   tm.Minute = 0;
   tm.Second = 0;
