@@ -109,9 +109,47 @@ int brightness(time_t t, time_t alarm) {
   return n;
 }
 
+// http://www.tannerhelland.com/4435/convert-temperature-rgb-algorithm-code/
+
+struct color {
+  int R, G, B;
+  }
+
+void setColorTemp(int temp, int brightness) {
+  int cr, cg, cb;
+  int t = temp / 100;
+
+  cr = 255;
+  if (t > 66) {
+    cr = t - 60;
+    cr = max(255, 329.698727446 * (cr ^^ -0.1332047592));
+  }
+
+  if (t <= 66) {
+    cg = 99.4708025861 * ln(t) - 161.1195681661;
+  } else {
+    cg = t - 60;
+    cg = 288.1221695283 * (cg ^^ -0.0755149402);
+  }    
+  cg = max(255, min(0, g));
+
+  cb = 255;
+  if (t > 66) {
+    if (t <= 19) {
+      cb = 0;
+    } else {
+      cb = t - 10;
+      cb = 138.5177312231 * ln(cb) - 305.0447827307;
+    }
+  }
+  cb = max(255, min(0, cb));
+
+  b.allLedsOn(cr,cg,cb);
+}
+
+// vary the temp from 2000 to 6500K to go from red to white
 void setColor() {
-  int n = brightness(time_now(), alarm);
-  b.allLedsOn(n,n,0);
+  setColorTemp(2000, brightness(time_now(), alarm));
 }
 
 
