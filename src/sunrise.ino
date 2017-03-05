@@ -14,7 +14,7 @@ tmElements_t tm;
 #define ASLEEP 0
 #define AWAKE 1
 
-// #define MUTE_WEMO 1
+//#define MUTE_WEMO 1
 //#undef DEBUG
 
 
@@ -54,7 +54,8 @@ int toggle_state(int s) {
 
 char *timeStr(time_t t) {
   static char tbuf[32];
-  sprintf(tbuf, "%d:%02d:%02d", hour(t), minute(t), second(t));
+  sprintf(tbuf, "%d/%d %d:%02d:%02d", month(t), day(t),
+	  hour(t), minute(t), second(t));
   return tbuf;
 }
 
@@ -69,10 +70,9 @@ int brightness(time_t t, time_t alarm) {
   int n = 255 * (int)(now - prealarm) / (30*60);
   n = min(max(n,0),255);
   if (Time.now() % 10 == 0) {
-    DEBUG_PRINT("t %s  color %d", timeStr(now), n);
-    for (int i=0; i<2; i++) {
-      DEBUG_PRINT("alarm[%d]=%s",i,timeStr(alarm_time[i]));
-    }
+    char alarmStr[16];
+    strncpy(alarmStr, timeStr(alarm), 16);
+    DEBUG_PRINT("t %s %s color %d", timeStr(now), alarmStr, n);
   }
   return n;
 }
@@ -109,12 +109,12 @@ int shaken() {
 void beep(int state) { 
   switch (state) {
     case ASLEEP:
-      switchOff();
+     // switchOff();
       b.playSong("E5,8,G5,8,E6,8,C6,8,D6,8,G6,8,");
       break;
     case AWAKE:
       switchOn();
-      b.playSong("C4,8,E4,8,G4,8,C5,8,G5,4,");
+     // b.playSong("C4,8,E4,8,G4,8,C5,8,G5,4,");
       break;
   }
   flashlights();
@@ -164,8 +164,14 @@ void setAlarms() {
   tm.Minute = 0;
   tm.Second = 0;
   alarm_time[ASLEEP]= makeTime(tm);  // 6am
+  if (alarm_time[ASLEEP] < Time.now()) {
+    alarm_time[ASLEEP] += 60*60*24;
+  }
   tm.Hour = 22;
   alarm_time[AWAKE]= makeTime(tm);   // 10pm
+  if (alarm_time[AWAKE] < Time.now()) {
+    alarm_time[AWAKE] += 60*60*24;
+  }
 }
 
 time_t nextTime = 0;
