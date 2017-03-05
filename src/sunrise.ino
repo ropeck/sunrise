@@ -26,12 +26,6 @@ tmElements_t tm;
 #endif
 #endif
 
-#define TZ_OFFSET -8*60*60
-
-time_t time_now() {
-  return Time.now() + TZ_OFFSET
-}
-
 int xValue;
 int yValue;
 int zValue;
@@ -54,6 +48,34 @@ int toggle_state(int s) {
 }
 
 // https://github.com/neilbartlett/color-temperature/blob/master/index.js
+
+#define TZ_OFFSET -8*60*60
+
+#ifdef REALTIME
+time_t time_now() {
+  return Time.now() + TZ_OFFSET;
+}
+#endif
+
+time_t makeTimeAt(int hour) {
+  tmElements_t tm;
+  breakTime(time_now(), tm);
+  tm.Hour = hour;
+  tm.Minute = 0;
+  tm.Second = 0;
+  return makeTime(tm);
+}
+
+time_t time_startup = Time.now();
+
+#ifndef REALTIME
+time_t test_time_start = makeTimeAt(21)+60*50;
+int test_time_multiple = 10;
+
+time_t time_now() {
+  return (Time.now() - time_startup) * test_time_multiple + test_time_start;
+}
+#endif
 
 char *timeStr(time_t t) {
   static char tbuf[32];
@@ -125,7 +147,7 @@ void beep(int state) {
 
 int debug_mode = 0;
 
-int debugmode(String command) {
+void debugmode(String command) {
   int mode = atoi(command.c_str());
   b.playSong("G4,8,G4,8,G4,8,");
   debug_mode = mode;
@@ -159,21 +181,20 @@ void setup() {
   setAlarms();
 }
 
-
 void setAlarms() {
-  tmElements_t tm;
-  breakTime(time_now(), tm);
-  tm.Hour = 6;
-  tm.Minute = 0;
-  tm.Second = 0;
-  alarm_time[ASLEEP]= makeTime(tm);  // 6am
-  if (alarm_time[ASLEEP] < time_now()) {
-    alarm_time[ASLEEP] += 60*60*24;
-  }
-  tm.Hour = 22;
-  alarm_time[AWAKE]= makeTime(tm);   // 10pm
-  if (alarm_time[AWAKE] < time_now()) {
-    alarm_time[AWAKE] += 60*60*24;
+  alarm_time[ASLEEP]= makeTimeAt(6);  // 6am
+  alarm_time[AWAKE]= makeTimeAt(22);   // 10pm
+  switch (state) {
+    case ASLEEP:
+      if (alarm_time[AWAKE] < time_now()) {
+        alarm_time[AWAKE] += 60*60*24;
+      } 
+      break;
+    case AWAKE:
+      if (alarm_time[ASLEEP] < time_now()) {
+        alarm_time[ASLEEP] += 60*60*24;
+      }
+      break;
   }
 }
 
