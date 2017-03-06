@@ -69,7 +69,7 @@ time_t makeTimeAt(int hour) {
 time_t time_startup = Time.now();
 
 #ifndef REALTIME
-time_t test_time_start = makeTimeAt(5)+60*50;
+time_t test_time_start = makeTimeAt(21)+60*45;
 int test_time_multiple = 10;
 
 time_t time_now() {
@@ -90,9 +90,8 @@ time_t alarm_time[2]; // ASLEEP:6am  AWAKE:10pm
 int brightness(time_t t, time_t alarm) {
   char *statestr;
   static time_t next_time;
-  time_t prealarm;
   time_t now = time_now();
-  prealarm = alarm - 30*60; // 30 minutes earlier
+  time_t prealarm = alarm - 30*60; // 30 minutes earlier
    
   int n = 255 * (int)(now - prealarm) / (30*60);
   n = min(max(n,0),255);
@@ -147,9 +146,13 @@ void setColorTemp(int temp, int brightness) {
 
 // vary the temp from 2000 to 6500K to go from red to white
 void setColor() {
-  setColorTemp(2000, brightness(time_now(), alarm));
-}
+  time_t now = time_now();
+  time_t prealarm = alarm - 30*60; // 30 minutes earlier
+  int n = 5000 * (int)(now - prealarm) / (30*60);
+  n = min(max(n,0),5000);
 
+  setColorTemp(2000+n, brightness(time_now(), alarm));
+}
 
 void flashlights() {
       b.rainbow(10);
