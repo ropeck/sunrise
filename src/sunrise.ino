@@ -46,10 +46,21 @@ int toggle_state(int s) {
     return AWAKE;
   }
 }
+#define TZ_OFFSET -8*60*60
+
+time_t makeTimeAt(int hour) {
+  tmElements_t tm;
+  breakTime(Time.now() + TZ_OFFSET, tm);
+  tm.Hour = hour;
+  tm.Minute = 0;
+  tm.Second = 0;
+  return makeTime(tm);
+}
 
 // https://github.com/neilbartlett/color-temperature/blob/master/index.js
 
-#define TZ_OFFSET -8*60*60
+
+#define REALTIME
 
 #ifdef REALTIME
 time_t time_now() {
@@ -57,19 +68,10 @@ time_t time_now() {
 }
 #endif
 
-time_t makeTimeAt(int hour) {
-  tmElements_t tm;
-  breakTime(Time.now(), tm);
-  tm.Hour = hour;
-  tm.Minute = 0;
-  tm.Second = 0;
-  return makeTime(tm);
-}
-
 time_t time_startup = Time.now();
 
 #ifndef REALTIME
-time_t test_time_start = makeTimeAt(21)+60*45;
+time_t test_time_start = makeTimeAt(5)+60*45;
 int test_time_multiple = 10;
 
 time_t time_now() {
@@ -103,7 +105,7 @@ int brightness(time_t t, time_t alarm) {
     if (state == AWAKE) {
       statestr = "AWAKE";
     }
-    DEBUG_PRINT("%s %s %s color %d", statestr, timeStr(now), alarmStr, n);
+    //    DEBUG_PRINT("%s %s %s color %d", statestr, timeStr(now), alarmStr, n);
   }
   return n;
 }
@@ -139,7 +141,7 @@ void setColorTemp(int temp, int brightness) {
   }
   cb = min(255, max(0, cb));
 
-  DEBUG_PRINT("%d %d %d %d %d", temp, brightness, int(cr), int(cg), int(cb));
+  //  DEBUG_PRINT("%d %d %d %d %d", temp, brightness, int(cr), int(cg), int(cb));
 
   b.allLedsOn(int(cr*brightness/255),int(cg*brightness/255),int(cb*brightness/255));
 }
@@ -150,7 +152,9 @@ void setColor() {
   time_t prealarm = alarm - 30*60; // 30 minutes earlier
   int n = 5000 * (int)(now - prealarm) / (30*60);
   n = min(max(n,0),5000);
-
+  if (now > makeTimeAt(12)) {
+    n = 5000 - n;
+  }
   setColorTemp(2000+n, brightness(time_now(), alarm));
 }
 
@@ -180,12 +184,14 @@ int shaken() {
 void beep(int state) { 
   switch (state) {
     case ASLEEP:
-     // switchOff();
+      switchOff();
       b.playSong("E5,8,G5,8,E6,8,C6,8,D6,8,G6,8,");
       break;
     case AWAKE:
-      switchOn();
-     // b.playSong("C4,8,E4,8,G4,8,C5,8,G5,4,");
+      if (time_now() > makeTimeAt(12)) {
+	switchOn();
+	b.playSong("C4,8,E4,8,G4,8,C5,8,G5,4,");
+      }
       break;
   }
   flashlights();
@@ -230,6 +236,8 @@ void setup() {
 void setAlarms() {
   alarm_time[ASLEEP]= makeTimeAt(6);  // 6am
   alarm_time[AWAKE]= makeTimeAt(22);   // 10pm
+  DEBUG_PRINT("setAlarm AWAKE %s %d", timeStr(alarm_time[AWAKE]), alarm_time[AWAKE]);
+  
   if (time_now() > alarm_time[AWAKE] + 60*60) {
     alarm_time[AWAKE] += 60*60*24;
   } 
