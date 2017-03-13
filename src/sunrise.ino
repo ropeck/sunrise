@@ -46,7 +46,7 @@ int toggle_state(int s) {
     return AWAKE;
   }
 }
-#define TZ_OFFSET -8*60*60
+#define TZ_OFFSET -7*60*60
 
 time_t makeTimeAt(int hour) {
   tmElements_t tm;
