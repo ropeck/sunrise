@@ -2,6 +2,7 @@
 
 #include "Time.h"
 #include "TimeLib.h"
+#include "math.h"
 
 time_t alarm = 0;
 tmElements_t tm;
@@ -234,8 +235,8 @@ void setup() {
 }
 
 void setAlarms() {
-  alarm_time[ASLEEP]= makeTimeAt(6);  // 6am
-  alarm_time[AWAKE]= makeTimeAt(22);   // 10pm
+  alarm_time[ASLEEP]= makeTimeAt(7);  // 6am
+  alarm_time[AWAKE]= makeTimeAt(22) + 60*30;   // 10:30pm
   DEBUG_PRINT("setAlarm AWAKE %s %d", timeStr(alarm_time[AWAKE]), alarm_time[AWAKE]);
   
   if (time_now() > alarm_time[AWAKE] + 60*60) {
